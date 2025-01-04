@@ -27,14 +27,14 @@ func New() (*Service, error) {
 	cacheDir = filepath.Join(cacheDir, "minidlna-scrobbler")
 	_, err := os.Stat(cacheDir)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			err = os.Mkdir(cacheDir, 0o744)
-			if err != nil {
-				return nil, err
-			}
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, err
 		}
 
-		return nil, err
+		err = os.Mkdir(cacheDir, 0o744)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &Service{

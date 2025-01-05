@@ -1,0 +1,12 @@
+version: "3"
+tasks:
+  build:
+    cmds:
+      - mkdir -p ./bin
+      - go mod download
+      - go mod verify
+      - go build -ldflags='-s -w -extldflags "-static"' -o ./bin/minidlna-scrobble ./main.go
+  run:
+    cmds:
+      - mkdir -p ./db
+      - go run ./main.go {{.CLI_ARGS}}

@@ -86,7 +86,7 @@ func (s *Service) Watch(ctx context.Context) error {
 					continue
 				}
 
-				// Cancel any previously enqueed jobs
+				// Cancel any previously enqueued jobs
 				// if they didn't complete by now, they don't count
 				s.cancelJobs()
 
@@ -120,7 +120,7 @@ func (s *Service) Watch(ctx context.Context) error {
 					continue
 				}
 
-				if err = s.enqueeScrobble(ctx, md); err != nil {
+				if err = s.enqueueScrobble(ctx, md); err != nil {
 					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
 					continue
 				}
@@ -173,7 +173,7 @@ func (s *Service) cancelJobs() {
 	s.jobs = make(map[string]context.CancelFunc, 0)
 }
 
-func (s *Service) enqueeScrobble(ctx context.Context, md metadata.Track) error {
+func (s *Service) enqueueScrobble(ctx context.Context, md metadata.Track) error {
 	ctx, cancel := context.WithCancel(ctx)
 	if md.Duration <= time.Second*30 {
 		// Not worth scrobbling

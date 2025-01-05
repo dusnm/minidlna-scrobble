@@ -95,8 +95,9 @@ WorkingDirectory=/usr/local/bin
 ExecStart=/usr/local/bin/minidlna-scrobble --log-level=info scrobble
 Restart=on-failure
 
-Environment=XDG_CONFIG_HOME=/home/your_username/.config
-Environment=XDG_CACHE_HOME=/home/your_username/.cache
+# These must be writable by the "username" user
+Environment=XDG_CONFIG_HOME=/home/username/.config
+Environment=XDG_CACHE_HOME=/home/username/.cache
 
 [Install]
 WantedBy=multi-user.target

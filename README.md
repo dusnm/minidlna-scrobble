@@ -26,6 +26,26 @@ or
 go-task build
 ```
 
+### Logging and log level
+Everything is logged to `stderr`, which you can easily redirect to any other file of your liking.
+```shell
+minidlna-scrobble [command] 2>>app.log
+```
+
+Every command can be assigned a log level (the default is `error`).
+The levels are arranged in a hierarchical structure. The application will log all events above and including the chosen level.
+
+The possible levels, in ascending order, are: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`.
+
+To choose a level other than the default, pass it through a command line flag:
+```shell
+minidlna-scrobble --log-level=info [command]
+```
+or with a shorthand flag
+```shell
+minidlna-scrobble -l info [command]
+```
+
 ### Environment setup
 Set your `XDG_CONFIG_HOME` and `XDG_CACHE_HOME` environment variables to writable locations.
 ```shell

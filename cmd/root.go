@@ -22,7 +22,12 @@ var rootCmd = &cobra.Command{
 	Long: `Copyright (C) 2025 Dušan Mitrović <dusan@dusanmitrovic.rs>
 Licensed under the terms of the GNU GPL v3 only`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04"})
+		log.Logger = log.Output(zerolog.ConsoleWriter{
+			Out:        os.Stderr,
+			NoColor:    true,
+			TimeFormat: "15:04",
+		})
+
 		level, err := cmd.Flags().GetString(flagLogLevel)
 		if err != nil {
 			log.Fatal().Err(err).Msg("")

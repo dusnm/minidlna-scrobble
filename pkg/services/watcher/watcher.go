@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -61,7 +62,7 @@ func (s *Service) Watch(ctx context.Context) error {
 					return
 				}
 
-				if event.Has(fsnotify.Write) {
+				if event.Name == s.cfg.LogFile && event.Has(fsnotify.Write) {
 					line, err := s.lastLine()
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
@@ -118,7 +119,7 @@ func (s *Service) Watch(ctx context.Context) error {
 		}
 	}()
 
-	if err = w.Add(s.cfg.LogFile); err != nil {
+	if err = w.Add(filepath.Dir(s.cfg.LogFile)); err != nil {
 		return err
 	}
 

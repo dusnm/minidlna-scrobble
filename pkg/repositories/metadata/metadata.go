@@ -76,10 +76,10 @@ func (r *Repository) GetByID(ctx context.Context, ID int) (models.Track, error) 
 	}
 
 	return models.Track{
-		Artist:    artist,
-		Name:      title,
+		Artist:    helpers.ReplaceSpecialChars(artist),
+		Name:      helpers.ReplaceSpecialChars(title),
 		Timestamp: time.Now(),
-		Album:     album,
+		Album:     helpers.ReplaceSpecialChars(album),
 		Duration:  d,
 		Number:    track,
 	}, nil

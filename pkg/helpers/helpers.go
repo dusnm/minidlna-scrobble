@@ -14,8 +14,18 @@ import (
 )
 
 var (
+	replacer *strings.Replacer
+
 	ErrInvalidDurationFormat = errors.New("invalid duration format")
 )
+
+func init() {
+	replacements := []string{
+		"&amp;amp;", "&",
+	}
+
+	replacer = strings.NewReplacer(replacements...)
+}
 
 func CalculateSignature(
 	params url.Values,
@@ -91,4 +101,8 @@ func ParseDBDuration(duration string) (time.Duration, error) {
 	result += time.Millisecond * time.Duration(miliseconds)
 
 	return result, nil
+}
+
+func ReplaceSpecialChars(in string) string {
+	return replacer.Replace(in)
 }

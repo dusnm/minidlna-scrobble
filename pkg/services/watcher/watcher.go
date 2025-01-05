@@ -92,7 +92,7 @@ func (s *Service) Watch(ctx context.Context) error {
 					continue
 				}
 
-				if !strings.HasPrefix(line, constants.MagicLogValue) {
+				if !strings.Contains(line, constants.MagicLogValue) {
 					s.logger.
 						Debug().
 						Str("line", line).

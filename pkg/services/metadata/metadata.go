@@ -42,6 +42,19 @@ func (t Track) ToForm() url.Values {
 
 	if t.AlbumArtist != "" {
 		form.Add("albumArtist", t.AlbumArtist)
+
+		// Some files may be tagged with multiple
+		// artists, but we're essentially only interested
+		// in the principal artist.
+		//
+		// If there is an album artist, we'll use that for
+		// the main artist tag.
+		//
+		// Is it the only way? No, but I feel it's more correct.
+		if t.Artist != t.AlbumArtist {
+			form.Del("artist")
+			form.Add("artist", t.AlbumArtist)
+		}
 	}
 
 	if t.Duration > 0 {

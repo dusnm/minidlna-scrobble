@@ -53,12 +53,19 @@ export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_CACHE_HOME="$HOME/.cache"
 ```
 
+You must give the application read access to the minidlna database, usually stored at `/var/cache/minidlna/files.db`,
+by adding the application user to the `minidlna` group.
+```shell
+sudo gpasswd -a username minidlna
+```
+
 ### Authenticating with last.fm
 1. Apply for an API account, [here](https://www.last.fm/api/account/create) (Name and description are the only required fields)
 2. You'll receive an API key and a shared secret, take note of them.
 3. Write app configuration at `$XDG_CONFIG_HOME/minidlna-scrobbler/config.json`
 ```json
 {
+  "db_file": "/var/cache/minidlna/files.db",
   "log_file": "/var/log/minidlna/minidlna.log",
   "credentials": {
     "api_key": "provided_api_key",
@@ -82,10 +89,10 @@ After=network.target
 
 [Service]
 Type=simple
-User=your_username
-Group=your_username
+User=username
+Group=username
 WorkingDirectory=/usr/local/bin
-ExecStart=/usr/local/bin/minidlna-scrobble scrobble
+ExecStart=/usr/local/bin/minidlna-scrobble --log-level=info scrobble
 Restart=on-failure
 
 Environment=XDG_CONFIG_HOME=/home/your_username/.config

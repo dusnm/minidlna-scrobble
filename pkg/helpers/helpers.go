@@ -5,8 +5,16 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"net/url"
 	"slices"
+	"strconv"
+	"strings"
+	"time"
+)
+
+var (
+	ErrInvalidDurationFormat = errors.New("invalid duration format")
 )
 
 func CalculateSignature(
@@ -44,4 +52,43 @@ func RandomID() (string, error) {
 	}
 
 	return hex.EncodeToString(buff), nil
+}
+
+func ParseDBDuration(duration string) (time.Duration, error) {
+	parts := strings.Split(duration, ":")
+	if len(parts) != 3 {
+		return time.Duration(0), ErrInvalidDurationFormat
+	}
+
+	secParts := strings.Split(parts[2], ".")
+	if len(secParts) != 2 {
+		return time.Duration(0), ErrInvalidDurationFormat
+	}
+
+	hours, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return time.Duration(0), err
+	}
+
+	minutes, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return time.Duration(0), err
+	}
+
+	seconds, err := strconv.Atoi(secParts[0])
+	if err != nil {
+		return time.Duration(0), err
+	}
+
+	miliseconds, err := strconv.Atoi(secParts[1])
+	if err != nil {
+		return time.Duration(0), err
+	}
+
+	result := time.Hour * time.Duration(hours)
+	result += time.Minute * time.Duration(minutes)
+	result += time.Second * time.Duration(seconds)
+	result += time.Millisecond * time.Duration(miliseconds)
+
+	return result, nil
 }

@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	ErrDBFilePathNotAbsolute  = errors.New("the path to the minidlna database must be absolute")
 	ErrLogFilePathNotAbsolute = errors.New("the path to the minidlna log file must be absolute")
 	ErrAPIKeyMissing          = errors.New("you must supply the api key")
 	ErrSharedSecretMissing    = errors.New("you must supply the shared secret")
@@ -28,6 +29,7 @@ type (
 	}
 
 	Config struct {
+		DBFile      string      `json:"db_file"`
 		LogFile     string      `json:"log_file"`
 		Credentials Credentials `json:"credentials"`
 	}
@@ -85,6 +87,10 @@ func unmarshall(data io.Reader) (Config, error) {
 }
 
 func validate(cfg Config) error {
+	if !filepath.IsAbs(cfg.DBFile) {
+		return ErrDBFilePathNotAbsolute
+	}
+
 	if !filepath.IsAbs(cfg.LogFile) {
 		return ErrLogFilePathNotAbsolute
 	}

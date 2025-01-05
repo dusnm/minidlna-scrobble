@@ -12,7 +12,7 @@ import (
 	"github.com/dusnm/minidlna-scrobble/pkg/config"
 	"github.com/dusnm/minidlna-scrobble/pkg/constants"
 	"github.com/dusnm/minidlna-scrobble/pkg/helpers"
-	"github.com/dusnm/minidlna-scrobble/pkg/services/metadata"
+	"github.com/dusnm/minidlna-scrobble/pkg/models"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/sessioncache"
 )
 
@@ -105,7 +105,7 @@ func New(
 
 func (s *Service) SendNowPlaying(
 	ctx context.Context,
-	data metadata.Track,
+	data models.Track,
 ) (NowPlayingResponse, error) {
 	session, err := s.sessionCache.Read()
 	if err != nil {
@@ -160,7 +160,7 @@ func (s *Service) SendNowPlaying(
 	return npResp, nil
 }
 
-func (s *Service) Scrobble(ctx context.Context, data metadata.Track) (ScrobbleResponse, error) {
+func (s *Service) Scrobble(ctx context.Context, data models.Track) (ScrobbleResponse, error) {
 	session, err := s.sessionCache.Read()
 	if err != nil {
 		return ScrobbleResponse{}, err

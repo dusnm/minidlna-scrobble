@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -13,7 +14,8 @@ import (
 	"github.com/dusnm/minidlna-scrobble/pkg/constants"
 	"github.com/dusnm/minidlna-scrobble/pkg/helpers"
 	"github.com/dusnm/minidlna-scrobble/pkg/logparser"
-	"github.com/dusnm/minidlna-scrobble/pkg/services/metadata"
+	"github.com/dusnm/minidlna-scrobble/pkg/models"
+	"github.com/dusnm/minidlna-scrobble/pkg/repositories/metadata"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/scrobble"
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
@@ -24,7 +26,7 @@ type (
 		cfg             *config.Config
 		mu              *sync.Mutex
 		logger          zerolog.Logger
-		metadata        *metadata.Service
+		metadata        *metadata.Repository
 		scrobbleService *scrobble.Service
 		jobs            map[string]context.CancelFunc
 		watcher         *fsnotify.Watcher
@@ -33,7 +35,7 @@ type (
 
 func New(
 	cfg *config.Config,
-	metadataService *metadata.Service,
+	metadataRepo *metadata.Repository,
 	scrobbleService *scrobble.Service,
 	logger zerolog.Logger,
 ) (*Service, error) {
@@ -46,7 +48,7 @@ func New(
 		cfg:             cfg,
 		mu:              &sync.Mutex{},
 		logger:          logger,
-		metadata:        metadataService,
+		metadata:        metadataRepo,
 		scrobbleService: scrobbleService,
 		jobs:            make(map[string]context.CancelFunc, 0),
 		watcher:         w,
@@ -111,7 +113,13 @@ func (s *Service) Watch(ctx context.Context) error {
 					continue
 				}
 
-				md, err := s.getMetadata(parsed.Filepath)
+				id, err := strconv.Atoi(parsed.MessageID)
+				if err != nil {
+					s.logger.Error().Err(err).Msg("")
+					continue
+				}
+
+				md, err := s.metadata.GetByID(ctx, id)
 				if err != nil {
 					s.logger.Error().Err(err).Msg("")
 					continue
@@ -174,24 +182,6 @@ func (s *Service) lastLine() (string, error) {
 	return line, nil
 }
 
-// getMetadata encapsulates file operations
-// to ensure proper release of resources
-func (s *Service) getMetadata(path string) (metadata.Track, error) {
-	f, err := os.OpenFile(path, os.O_RDONLY, 0o644)
-	if err != nil {
-		return metadata.Track{}, err
-	}
-
-	defer f.Close()
-
-	md, err := s.metadata.Read(f)
-	if err != nil {
-		return metadata.Track{}, err
-	}
-
-	return md, nil
-}
-
 func (s *Service) cancelJobs() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -208,7 +198,7 @@ func (s *Service) cancelJobs() {
 	s.jobs = make(map[string]context.CancelFunc, 0)
 }
 
-func (s *Service) enqueueScrobble(ctx context.Context, md metadata.Track) error {
+func (s *Service) enqueueScrobble(ctx context.Context, md models.Track) error {
 	ctx, cancel := context.WithCancel(ctx)
 	if md.Duration <= time.Second*30 {
 		// Not worth scrobbling
@@ -239,7 +229,7 @@ func (s *Service) enqueueScrobble(ctx context.Context, md metadata.Track) error 
 
 	go func(
 		ctx context.Context,
-		md metadata.Track,
+		md models.Track,
 		jobID string,
 		offset time.Duration,
 	) {

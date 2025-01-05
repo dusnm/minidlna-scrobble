@@ -1,9 +1,12 @@
 package container
 
 import (
+	"database/sql"
+	"errors"
+
 	"github.com/dusnm/minidlna-scrobble/pkg/config"
+	"github.com/dusnm/minidlna-scrobble/pkg/repositories/metadata"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/auth"
-	"github.com/dusnm/minidlna-scrobble/pkg/services/metadata"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/scrobble"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/sessioncache"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/watcher"
@@ -15,11 +18,12 @@ type (
 	Container struct {
 		Cfg                 *config.Config
 		Logger              zerolog.Logger
+		db                  *sql.DB
 		authService         *auth.Service
 		sessionCacheService *sessioncache.Service
 		watcherService      *watcher.Service
-		metadataService     *metadata.Service
 		scrobbleService     *scrobble.Service
+		metadataRepo        *metadata.Repository
 	}
 )
 
@@ -41,9 +45,14 @@ func New(logLevel zerolog.Level) (*Container, error) {
 }
 
 func (c *Container) Close() error {
+	var err error
 	if c.watcherService != nil {
-		return c.watcherService.Close()
+		err = errors.Join(err, c.watcherService.Close())
 	}
 
-	return nil
+	if c.metadataRepo != nil {
+		err = errors.Join(err, c.metadataRepo.Close())
+	}
+
+	return err
 }

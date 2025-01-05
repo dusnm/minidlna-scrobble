@@ -105,7 +105,7 @@ func (s *Service) Watch(ctx context.Context) error {
 				// if they didn't complete by now, they don't count
 				s.cancelJobs()
 
-				parsed, err := logparser.ParseLine(strings.NewReader(line))
+				parsed, err := logparser.ParseLine(line)
 				if err != nil {
 					s.logger.Error().Err(err).Msg("")
 					continue

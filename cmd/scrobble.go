@@ -22,6 +22,9 @@ var scrobbleCmd = &cobra.Command{
 
 		logger := c.Logger.With().Str("command", "scrobble").Logger()
 		watcher := c.GetWatcherService()
+
+		logger.Info().Msg("starting watcher")
+
 		if err := watcher.Watch(ctx); err != nil {
 			logger.Fatal().Err(err).Msg("")
 		}

@@ -2,7 +2,6 @@ package logparser
 
 import (
 	"bufio"
-	"io"
 	"strings"
 )
 
@@ -26,10 +25,16 @@ type (
 	}
 )
 
-func ParseLine(line io.Reader) (Data, error) {
-	scanner := bufio.NewScanner(line)
+func ParseLine(line string) (Data, error) {
+	scanner := bufio.NewScanner(strings.NewReader(line))
 	scanner.Split(bufio.ScanRunes)
 
+	// This is the end delimeter
+	// that needs to be handled like
+	// a special case, if it appears in the filepath
+	special := "]"
+	specialCount := 0
+	totalSpecialCount := strings.Count(line, special)
 	state := stateSource
 	data := Data{}
 	for scanner.Scan() {
@@ -71,7 +76,13 @@ func ParseLine(line io.Reader) (Data, error) {
 
 			state = stateFilepath
 		case stateFilepath:
-			if c != "]" {
+			if c == special {
+				// handle the case where this is not the last occurence
+				specialCount++
+				if specialCount < totalSpecialCount {
+					data.Filepath += c
+				}
+			} else {
 				data.Filepath += c
 			}
 		}

@@ -12,15 +12,15 @@ import (
 var authCmd = &cobra.Command{
 	Use:   "auth",
 	Short: "Authenticate with last.fm",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
 		c := ctx.Value(constants.ContextKeyContainer).(*container.Container)
+		logger := c.Logger.With().Str("command", "auth").Logger()
 		authService := c.GetAuthService()
 		sessionCacheService := c.GetSessionCacheService()
-
 		token, err := authService.GetToken(ctx)
 		if err != nil {
-			return err
+			logger.Fatal().Err(err).Msg("")
 		}
 
 		userAPI, _ := url.Parse(constants.UserAPIBaseURL)
@@ -42,16 +42,14 @@ var authCmd = &cobra.Command{
 
 		sessionKey, err := authService.GetSessionKey(ctx, token)
 		if err != nil {
-			return err
+			logger.Fatal().Err(err).Msg("")
 		}
 
 		if err = sessionCacheService.Save(sessionKey); err != nil {
-			return err
+			logger.Fatal().Err(err).Msg("")
 		}
 
 		fmt.Println("Authentication details saved.")
-
-		return nil
 	},
 }
 

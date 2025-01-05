@@ -13,21 +13,20 @@ import (
 var scrobbleCmd = &cobra.Command{
 	Use:   "scrobble",
 	Short: "Start watching the minidlna log file and scrobble on changes",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
 
 		c := ctx.Value(constants.ContextKeyContainer).(*container.Container)
 		defer c.Close()
 
+		logger := c.Logger.With().Str("command", "scrobble").Logger()
 		watcher := c.GetWatcherService()
 		if err := watcher.Watch(ctx); err != nil {
-			return err
+			logger.Fatal().Err(err).Msg("")
 		}
 
 		<-ctx.Done()
-
-		return nil
 	},
 }
 

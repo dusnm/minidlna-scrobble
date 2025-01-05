@@ -3,7 +3,6 @@ package watcher
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,17 +16,14 @@ import (
 	"github.com/dusnm/minidlna-scrobble/pkg/services/metadata"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/scrobble"
 	"github.com/fsnotify/fsnotify"
+	"github.com/rs/zerolog"
 )
 
 type (
-	Job struct {
-		Cancel     context.CancelFunc
-		FinishedAt time.Time
-	}
-
 	Service struct {
 		cfg             *config.Config
 		mu              *sync.Mutex
+		logger          zerolog.Logger
 		metadata        *metadata.Service
 		scrobbleService *scrobble.Service
 		jobs            map[string]context.CancelFunc
@@ -39,6 +35,7 @@ func New(
 	cfg *config.Config,
 	metadataService *metadata.Service,
 	scrobbleService *scrobble.Service,
+	logger zerolog.Logger,
 ) (*Service, error) {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -48,6 +45,7 @@ func New(
 	return &Service{
 		cfg:             cfg,
 		mu:              &sync.Mutex{},
+		logger:          logger,
 		metadata:        metadataService,
 		scrobbleService: scrobbleService,
 		jobs:            make(map[string]context.CancelFunc, 0),
@@ -56,6 +54,8 @@ func New(
 }
 
 func (s *Service) Close() error {
+	s.logger.Info().Msg("closing")
+
 	return s.watcher.Close()
 }
 
@@ -69,20 +69,35 @@ func (s *Service) Watch(ctx context.Context) error {
 				}
 
 				if event.Name != s.cfg.LogFile {
+					s.logger.
+						Debug().
+						Str("event", event.String()).
+						Msg("not interested in this event")
+
 					continue
 				}
 
 				if !event.Has(fsnotify.Write) {
+					s.logger.
+						Debug().
+						Str("event", event.String()).
+						Msg("not a write event")
+
 					continue
 				}
 
 				line, err := s.lastLine()
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+					s.logger.Error().Err(err).Msg("")
 					continue
 				}
 
 				if !strings.HasPrefix(line, constants.MagicLogValue) {
+					s.logger.
+						Debug().
+						Str("line", line).
+						Msg("not interested in this log line")
+
 					continue
 				}
 
@@ -92,44 +107,41 @@ func (s *Service) Watch(ctx context.Context) error {
 
 				parsed, err := logparser.ParseLine(strings.NewReader(line))
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+					s.logger.Error().Err(err).Msg("")
 					continue
 				}
 
-				f, err := os.OpenFile(parsed.Filepath, os.O_RDONLY, 0o644)
+				md, err := s.getMetadata(parsed.Filepath)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+					s.logger.Error().Err(err).Msg("")
 					continue
 				}
-
-				md, err := s.metadata.Read(f)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
-					continue
-				}
-
-				f.Close()
 
 				npResp, err := s.scrobbleService.SendNowPlaying(ctx, md)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+					s.logger.Error().Err(err).Msg("")
 					continue
 				}
 
 				if npResp.NowPlaying.IgnoredMessage.Code != "0" {
+					s.logger.
+						Info().
+						Str("artist", npResp.NowPlaying.Artist.Text).
+						Str("track", npResp.NowPlaying.Track.Text).
+						Msg("ignoring track")
+
 					continue
 				}
 
 				if err = s.enqueueScrobble(ctx, md); err != nil {
-					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
-					continue
+					s.logger.Error().Err(err).Msg("")
 				}
 			case err, ok := <-s.watcher.Errors:
 				if !ok {
 					return
 				}
 
-				fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+				s.logger.Error().Err(err).Msg("")
 			}
 		}
 	}()
@@ -162,11 +174,34 @@ func (s *Service) lastLine() (string, error) {
 	return line, nil
 }
 
+// getMetadata encapsulates file operations
+// to ensure proper release of resources
+func (s *Service) getMetadata(path string) (metadata.Track, error) {
+	f, err := os.OpenFile(path, os.O_RDONLY, 0o644)
+	if err != nil {
+		return metadata.Track{}, err
+	}
+
+	defer f.Close()
+
+	md, err := s.metadata.Read(f)
+	if err != nil {
+		return metadata.Track{}, err
+	}
+
+	return md, nil
+}
+
 func (s *Service) cancelJobs() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for _, cancel := range s.jobs {
+	for id, cancel := range s.jobs {
+		s.logger.
+			Debug().
+			Str("id", id).
+			Msg("cancelling job")
+
 		cancel()
 	}
 
@@ -177,6 +212,12 @@ func (s *Service) enqueueScrobble(ctx context.Context, md metadata.Track) error 
 	ctx, cancel := context.WithCancel(ctx)
 	if md.Duration <= time.Second*30 {
 		// Not worth scrobbling
+		s.logger.
+			Info().
+			Str("artist", md.Artist).
+			Str("track", md.Name).
+			Msg("track too short to scrobble")
+
 		cancel()
 		return nil
 	}
@@ -211,14 +252,15 @@ func (s *Service) enqueueScrobble(ctx context.Context, md metadata.Track) error 
 				scrobbles, err := s.scrobbleService.Scrobble(ctx, md)
 				if err != nil {
 					// Well, we tried
-					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+					s.logger.Error().Err(err).Msg("")
 				} else {
-					fmt.Printf(
-						"scrobbled: %s - %s, ignored: %d",
-						scrobbles.Scrobbles.Scrobble.Artist.Text,
-						scrobbles.Scrobbles.Scrobble.Track.Text,
-						scrobbles.Scrobbles.Attr.Ignored,
-					)
+					s.logger.
+						Info().
+						Str("artist", scrobbles.Scrobbles.Scrobble.Artist.Text).
+						Str("track", scrobbles.Scrobbles.Scrobble.Track.Text).
+						Int("accepted", scrobbles.Scrobbles.Attr.Accepted).
+						Int("ignored", scrobbles.Scrobbles.Attr.Ignored).
+						Msg("successfull scrobble")
 				}
 
 				s.mu.Lock()

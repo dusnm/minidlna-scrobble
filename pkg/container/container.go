@@ -7,11 +7,14 @@ import (
 	"github.com/dusnm/minidlna-scrobble/pkg/services/scrobble"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/sessioncache"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/watcher"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type (
 	Container struct {
 		Cfg                 *config.Config
+		Logger              zerolog.Logger
 		authService         *auth.Service
 		sessionCacheService *sessioncache.Service
 		watcherService      *watcher.Service
@@ -20,7 +23,7 @@ type (
 	}
 )
 
-func New() (*Container, error) {
+func New(logLevel zerolog.Level) (*Container, error) {
 	cfg, err := config.New()
 	if err != nil {
 		return nil, err
@@ -28,6 +31,12 @@ func New() (*Container, error) {
 
 	return &Container{
 		Cfg: cfg,
+		Logger: log.
+			Logger.
+			Level(logLevel).
+			With().
+			Str("app", "minidlna-scrobble").
+			Logger(),
 	}, nil
 }
 

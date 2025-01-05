@@ -1,8 +1,6 @@
 package container
 
 import (
-	"log"
-
 	"github.com/dusnm/minidlna-scrobble/pkg/services/auth"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/metadata"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/scrobble"
@@ -22,7 +20,10 @@ func (c *Container) GetSessionCacheService() *sessioncache.Service {
 	if c.sessionCacheService == nil {
 		service, err := sessioncache.New()
 		if err != nil {
-			log.Fatal(err)
+			c.Logger.
+				Fatal().
+				Err(err).
+				Msg("unable to create an instance of session cache")
 		}
 
 		c.sessionCacheService = service
@@ -37,10 +38,17 @@ func (c *Container) GetWatcherService() *watcher.Service {
 			c.Cfg,
 			c.GetMetadataService(),
 			c.GetScrobbleService(),
+			c.Logger.
+				With().
+				Str("service", "watcher").
+				Logger(),
 		)
 
 		if err != nil {
-			log.Fatal(err)
+			c.Logger.
+				Fatal().
+				Err(err).
+				Msg("unable to create an instance of watcher")
 		}
 
 		c.watcherService = watcherService

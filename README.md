@@ -35,8 +35,8 @@ export XDG_CACHE_HOME="$HOME/.cache"
 
 ### Authenticating with last.fm
 1. Apply for an API account, [here](https://www.last.fm/api/account/create) (Name and description are the only required fields)
-2. You'll receive an API key and a shared secret, take not of them.
-3. Write app configuration at `$XDG_CONFIG_HOME/minidlna-scrobbler/config.json
+2. You'll receive an API key and a shared secret, take note of them.
+3. Write app configuration at `$XDG_CONFIG_HOME/minidlna-scrobbler/config.json`
 ```json
 {
   "log_file": "/var/log/minidlna/minidlna.log",
@@ -77,8 +77,9 @@ WantedBy=multi-user.target
 
 ### Notes
 * The application requires go >= 1.23 to compile.
-* The application assumes Linux is the underlying operating system. There are no guarantees
-it'll work on other Unix-like operating systems, and that's especially true for Windows.
+* The application assumes Linux is the underlying operating system and is therefore not portable.
+There are no guarantees it'll work on other Unix-like operating systems,
+and there are no guarantees whatsoever for Windows.
 
 ### Licensing
 This application is free software, licensed under the terms of the GNU GPL v3 license.

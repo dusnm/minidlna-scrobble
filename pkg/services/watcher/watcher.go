@@ -212,14 +212,14 @@ func (s *Service) enqueueScrobble(ctx context.Context, md metadata.Track) error 
 				if err != nil {
 					// Well, we tried
 					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+				} else {
+					fmt.Printf(
+						"scrobbled: %s - %s, ignored: %d",
+						scrobbles.Scrobbles.Scrobble.Artist.Text,
+						scrobbles.Scrobbles.Scrobble.Track.Text,
+						scrobbles.Scrobbles.Attr.Ignored,
+					)
 				}
-
-				fmt.Printf(
-					"scrobbled: %s - %s, ignored: %d",
-					scrobbles.Scrobbles.Scrobble.Artist.Text,
-					scrobbles.Scrobbles.Scrobble.Track.Text,
-					scrobbles.Scrobbles.Attr.Ignored,
-				)
 
 				s.mu.Lock()
 				delete(s.jobs, jobID)

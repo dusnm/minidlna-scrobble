@@ -31,6 +31,7 @@ type (
 		metadata        *metadata.Service
 		scrobbleService *scrobble.Service
 		jobs            map[string]context.CancelFunc
+		watcher         *fsnotify.Watcher
 	}
 )
 
@@ -38,78 +39,92 @@ func New(
 	cfg *config.Config,
 	metadataService *metadata.Service,
 	scrobbleService *scrobble.Service,
-) *Service {
+) (*Service, error) {
+	w, err := fsnotify.NewWatcher()
+	if err != nil {
+		return &Service{}, nil
+	}
+
 	return &Service{
 		cfg:             cfg,
 		mu:              &sync.Mutex{},
 		metadata:        metadataService,
 		scrobbleService: scrobbleService,
 		jobs:            make(map[string]context.CancelFunc, 0),
-	}
+		watcher:         w,
+	}, nil
+}
+
+func (s *Service) Close() error {
+	return s.watcher.Close()
 }
 
 func (s *Service) Watch(ctx context.Context) error {
-	w, err := fsnotify.NewWatcher()
-	if err != nil {
-		return err
-	}
-
 	go func() {
 		for {
 			select {
-			case event, ok := <-w.Events:
+			case event, ok := <-s.watcher.Events:
 				if !ok {
 					return
 				}
 
-				if event.Name == s.cfg.LogFile && event.Has(fsnotify.Write) {
-					line, err := s.lastLine()
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
-						continue
-					}
-
-					if strings.HasPrefix(line, constants.MagicLogValue) {
-						// Cancel any previously enqueed jobs
-						// if they didn't complete by now, they don't count
-						s.cancelJobs()
-
-						parsed, err := logparser.ParseLine(strings.NewReader(line))
-						if err != nil {
-							fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
-							continue
-						}
-
-						f, err := os.OpenFile(parsed.Filepath, os.O_RDONLY, 0o644)
-						if err != nil {
-							fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
-							continue
-						}
-
-						md, err := s.metadata.Read(f)
-						if err != nil {
-							fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
-							continue
-						}
-
-						f.Close()
-
-						npResp, err := s.scrobbleService.SendNowPlaying(ctx, md)
-						if err != nil {
-							fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
-							continue
-						}
-
-						if npResp.NowPlaying.IgnoredMessage.Code == "0" {
-							err = s.enqueeScrobble(ctx, md)
-							if err != nil {
-								fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
-								continue
-							}
-						}
-					}
+				if event.Name != s.cfg.LogFile {
+					continue
 				}
-			case err, ok := <-w.Errors:
+
+				if !event.Has(fsnotify.Write) {
+					continue
+				}
+
+				line, err := s.lastLine()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+					continue
+				}
+
+				if !strings.HasPrefix(line, constants.MagicLogValue) {
+					continue
+				}
+
+				// Cancel any previously enqueed jobs
+				// if they didn't complete by now, they don't count
+				s.cancelJobs()
+
+				parsed, err := logparser.ParseLine(strings.NewReader(line))
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+					continue
+				}
+
+				f, err := os.OpenFile(parsed.Filepath, os.O_RDONLY, 0o644)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+					continue
+				}
+
+				md, err := s.metadata.Read(f)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+					continue
+				}
+
+				f.Close()
+
+				npResp, err := s.scrobbleService.SendNowPlaying(ctx, md)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+					continue
+				}
+
+				if npResp.NowPlaying.IgnoredMessage.Code != "0" {
+					continue
+				}
+
+				if err = s.enqueeScrobble(ctx, md); err != nil {
+					fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+					continue
+				}
+			case err, ok := <-s.watcher.Errors:
 				if !ok {
 					return
 				}
@@ -119,7 +134,7 @@ func (s *Service) Watch(ctx context.Context) error {
 		}
 	}()
 
-	if err = w.Add(filepath.Dir(s.cfg.LogFile)); err != nil {
+	if err := s.watcher.Add(filepath.Dir(s.cfg.LogFile)); err != nil {
 		return err
 	}
 

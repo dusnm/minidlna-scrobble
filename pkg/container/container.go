@@ -30,3 +30,11 @@ func New() (*Container, error) {
 		Cfg: cfg,
 	}, nil
 }
+
+func (c *Container) Close() error {
+	if c.watcherService != nil {
+		return c.watcherService.Close()
+	}
+
+	return nil
+}

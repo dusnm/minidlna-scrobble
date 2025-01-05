@@ -33,11 +33,17 @@ func (c *Container) GetSessionCacheService() *sessioncache.Service {
 
 func (c *Container) GetWatcherService() *watcher.Service {
 	if c.watcherService == nil {
-		c.watcherService = watcher.New(
+		watcherService, err := watcher.New(
 			c.Cfg,
 			c.GetMetadataService(),
 			c.GetScrobbleService(),
 		)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		c.watcherService = watcherService
 	}
 
 	return c.watcherService

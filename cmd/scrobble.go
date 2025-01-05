@@ -18,8 +18,9 @@ var scrobbleCmd = &cobra.Command{
 		defer cancel()
 
 		c := ctx.Value(constants.ContextKeyContainer).(*container.Container)
-		watcher := c.GetWatcherService()
+		defer c.Close()
 
+		watcher := c.GetWatcherService()
 		if err := watcher.Watch(ctx); err != nil {
 			return err
 		}

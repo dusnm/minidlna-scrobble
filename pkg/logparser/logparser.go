@@ -77,7 +77,7 @@ func ParseLine(line string) (Data, error) {
 			state = stateFilepath
 		case stateFilepath:
 			if c == special {
-				// handle the case where this is not the last occurence
+				// handle the case where this is not the last occurrence
 				specialCount++
 				if specialCount < totalSpecialCount {
 					data.Filepath += c

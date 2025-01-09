@@ -250,7 +250,7 @@ func (s *Service) enqueueScrobble(ctx context.Context, md models.Track) error {
 						Str("track", scrobbles.Scrobbles.Scrobble.Track.Text).
 						Int("accepted", scrobbles.Scrobbles.Attr.Accepted).
 						Int("ignored", scrobbles.Scrobbles.Attr.Ignored).
-						Msg("successfull scrobble")
+						Msg("successful scrobble")
 				}
 
 				s.mu.Lock()

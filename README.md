@@ -14,7 +14,32 @@ The relevant line in `/etc/minidlna` is:
 log_level=general,artwork,database,inotify,scanner,metadata,http,ssdp,tivo=info
 ```
 
-### Building
+### Instalaltion
+You can use the precompiled binaries for your cpu architecture (currently `amd64` and `arm64`) 
+in the [release](https://github.com/dusnm/minidlna-scrobble/releases/latest) section. Make sure to put the 
+binary somewhere in your `$PATH`.
+
+An Arch Linux package is available in the AUR. You can use `makepkg` or your favorite AUR helper.
+If using `makepkg` import my public key first, as it's needed to verify the package signature.
+```shell
+gpg --recv-keys --keyserver=hkps://keys.openpgp.org 31086781B8FA9BA0EBDA9914C303EE480C188527
+```
+#### Example
+* makepkg
+```shell
+git clone https://aur.archlinux.org/minidlna-scrobble.git && cd minidlna-scrobble
+makepkg -si
+```
+
+* yay
+```shell
+# yay should prompt you to import the GPG key, so
+manualy importing it isn't actually required.
+
+yay -S minidlna-scrobble
+```
+
+### Building from source
 To build the application, run go build with the following options:
 ```shell
 mkdir -p ./bin && \

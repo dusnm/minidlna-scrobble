@@ -136,6 +136,7 @@ func (s *Service) Watch(ctx context.Context) error {
 						Info().
 						Str("artist", npResp.NowPlaying.Artist.Text).
 						Str("track", npResp.NowPlaying.Track.Text).
+						Str("ignored_for", npResp.NowPlaying.IgnoredMessage.Text).
 						Msg("ignoring track")
 
 					continue

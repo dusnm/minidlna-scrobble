@@ -34,7 +34,7 @@ makepkg -si
 * yay
 ```shell
 # yay should prompt you to import the GPG key, so
-manualy importing it isn't actually required.
+# manualy importing it isn't actually required.
 
 yay -S minidlna-scrobble
 ```

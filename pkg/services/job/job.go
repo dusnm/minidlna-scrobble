@@ -2,6 +2,7 @@ package job
 
 import (
 	"context"
+	"errors"
 	"net/url"
 	"syscall"
 	"time"
@@ -74,15 +75,32 @@ func (s *Service) send(job Job) {
 			Err(err).
 			Msg("")
 
-		switch v := err.(type) {
-		case *url.Error:
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			s.logger.
+				Info().
+				Str("artist", job.Track.Artist).
+				Str("track", job.Track.Name).
+				Msg("not scrobbling a cancelled job")
+
+			return
+		}
+
+		if errors.Is(err, &url.Error{}) {
 			// Everything should be retried with no delay in case of a network error
-			s.jobChan <- Job{
-				Ctx:   job.Ctx,
-				Delay: time.Duration(0),
-				Track: job.Track,
+			v := err.(*url.Error)
+			if v.Timeout() {
+				s.jobChan <- Job{
+					Ctx:   job.Ctx,
+					Delay: time.Duration(0),
+					Track: job.Track,
+				}
 			}
-		case scrobble.ErrorResponse:
+
+			return
+		}
+
+		if errors.Is(err, scrobble.ErrorResponse{}) {
+			v := err.(scrobble.ErrorResponse)
 			switch v.Code {
 			case scrobble.CodeServiceOffline, scrobble.CodeServiceTemporaryUnavailable:
 				// Only these codes indicate that the scrobble should be retried

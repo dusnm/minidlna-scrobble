@@ -93,6 +93,10 @@ func (s *Service) SendNowPlaying(
 	ctx context.Context,
 	data models.Track,
 ) (NowPlayingResponse, error) {
+	if err := ctx.Err(); err != nil {
+		return NowPlayingResponse{}, err
+	}
+
 	session, err := s.sessionCache.Read()
 	if err != nil {
 		return NowPlayingResponse{}, err
@@ -147,6 +151,10 @@ func (s *Service) SendNowPlaying(
 }
 
 func (s *Service) Scrobble(ctx context.Context, data models.Track) (ScrobbleResponse, error) {
+	if err := ctx.Err(); err != nil {
+		return ScrobbleResponse{}, err
+	}
+
 	session, err := s.sessionCache.Read()
 	if err != nil {
 		return ScrobbleResponse{}, err

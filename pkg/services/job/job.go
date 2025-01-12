@@ -48,11 +48,7 @@ func (s *Service) Work(ctx context.Context) {
 		for {
 			select {
 			case job := <-s.jobChan:
-				if job.Delay > 0 {
-					s.sendWithDelay(job)
-				} else {
-					s.send(job)
-				}
+				s.sendWithDelay(job)
 			case <-ctx.Done():
 				s.logger.Info().Msg("closing")
 				return

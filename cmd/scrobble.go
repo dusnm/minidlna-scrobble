@@ -20,6 +20,8 @@ var scrobbleCmd = &cobra.Command{
 		c := ctx.Value(constants.ContextKeyContainer).(*container.Container)
 		defer c.Close()
 
+		c.GetJobService().Work(ctx)
+
 		logger := c.Logger.With().Str("command", "scrobble").Logger()
 		watcher := c.GetWatcherService()
 

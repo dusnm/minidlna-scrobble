@@ -2,6 +2,7 @@ package container
 
 import (
 	"github.com/dusnm/minidlna-scrobble/pkg/services/auth"
+	"github.com/dusnm/minidlna-scrobble/pkg/services/job"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/scrobble"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/sessioncache"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/watcher"
@@ -37,6 +38,7 @@ func (c *Container) GetWatcherService() *watcher.Service {
 			c.Cfg,
 			c.GetMetadataRepository(),
 			c.GetScrobbleService(),
+			c.GetJobService(),
 			c.Logger.
 				With().
 				Str("service", "watcher").
@@ -65,4 +67,18 @@ func (c *Container) GetScrobbleService() *scrobble.Service {
 	}
 
 	return c.scrobbleService
+}
+
+func (c *Container) GetJobService() *job.Service {
+	if c.jobService == nil {
+		c.jobService = job.New(
+			c.GetScrobbleService(),
+			c.Logger.
+				With().
+				Str("service", "job").
+				Logger(),
+		)
+	}
+
+	return c.jobService
 }

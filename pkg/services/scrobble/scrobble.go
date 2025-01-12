@@ -16,6 +16,12 @@ import (
 	"github.com/dusnm/minidlna-scrobble/pkg/services/sessioncache"
 )
 
+const (
+	CodeInvalidSessionKey           = 9
+	CodeServiceOffline              = 11
+	CodeServiceTemporaryUnavailable = 16
+)
+
 type (
 	Service struct {
 		cfg          config.Credentials
@@ -28,55 +34,35 @@ type (
 		Code    uint   `json:"error"`
 	}
 
+	Ignored struct {
+		Code string `json:"code"`
+		Text string `json:"#text"`
+	}
+
+	Correction struct {
+		Corrected string `json:"corrected"`
+		Text      string `json:"#text"`
+	}
+
 	NowPlayingResponse struct {
 		NowPlaying struct {
-			Artist struct {
-				Corrected string `json:"corrected"`
-				Text      string `json:"#text"`
-			} `json:"artist"`
-			Track struct {
-				Corrected string `json:"corrected"`
-				Text      string `json:"#text"`
-			} `json:"track"`
-			IgnoredMessage struct {
-				Code string `json:"code"`
-				Text string `json:"#text"`
-			} `json:"ignoredMessage"`
-			AlbumArtist struct {
-				Corrected string `json:"corrected"`
-				Text      string `json:"#text"`
-			} `json:"albumArtist"`
-			Album struct {
-				Corrected string `json:"corrected"`
-				Text      string `json:"#text"`
-			} `json:"album"`
+			IgnoredMessage Ignored              `json:"ignoredMessage"`
+			Artist         struct{ Correction } `json:"artist"`
+			Track          struct{ Correction } `json:"track"`
+			AlbumArtist    struct{ Correction } `json:"albumArtist"`
+			Album          struct{ Correction } `json:"album"`
 		} `json:"nowplaying"`
 	}
 
 	ScrobbleResponse struct {
 		Scrobbles struct {
 			Scrobble struct {
-				Artist struct {
-					Corrected string `json:"corrected"`
-					Text      string `json:"#text"`
-				} `json:"artist"`
-				Track struct {
-					Corrected string `json:"corrected"`
-					Text      string `json:"#text"`
-				} `json:"track"`
-				IgnoredMessage struct {
-					Code string `json:"code"`
-					Text string `json:"#text"`
-				} `json:"ignoredMessage"`
-				AlbumArtist struct {
-					Corrected string `json:"corrected"`
-					Text      string `json:"#text"`
-				} `json:"albumArtist"`
-				Album struct {
-					Corrected string `json:"corrected"`
-					Text      string `json:"#text"`
-				} `json:"album"`
-				Timestamp string `json:"timestamp"`
+				IgnoredMessage Ignored              `json:"ignoredMessage"`
+				Artist         struct{ Correction } `json:"artist"`
+				Track          struct{ Correction } `json:"track"`
+				AlbumArtist    struct{ Correction } `json:"albumArtist"`
+				Album          struct{ Correction } `json:"album"`
+				Timestamp      string               `json:"timestamp"`
 			} `json:"scrobble"`
 			Attr struct {
 				Ignored  int `json:"ignored"`

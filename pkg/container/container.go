@@ -7,6 +7,7 @@ import (
 	"github.com/dusnm/minidlna-scrobble/pkg/config"
 	"github.com/dusnm/minidlna-scrobble/pkg/repositories/metadata"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/auth"
+	"github.com/dusnm/minidlna-scrobble/pkg/services/job"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/scrobble"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/sessioncache"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/watcher"
@@ -23,6 +24,7 @@ type (
 		sessionCacheService *sessioncache.Service
 		watcherService      *watcher.Service
 		scrobbleService     *scrobble.Service
+		jobService          *job.Service
 		metadataRepo        *metadata.Repository
 	}
 )

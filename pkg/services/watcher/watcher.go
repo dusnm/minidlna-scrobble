@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/dusnm/minidlna-scrobble/pkg/config"
@@ -16,6 +15,7 @@ import (
 	"github.com/dusnm/minidlna-scrobble/pkg/logparser"
 	"github.com/dusnm/minidlna-scrobble/pkg/models"
 	"github.com/dusnm/minidlna-scrobble/pkg/repositories/metadata"
+	"github.com/dusnm/minidlna-scrobble/pkg/services/job"
 	"github.com/dusnm/minidlna-scrobble/pkg/services/scrobble"
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
@@ -24,10 +24,10 @@ import (
 type (
 	Service struct {
 		cfg             *config.Config
-		mu              *sync.Mutex
 		logger          zerolog.Logger
 		metadata        *metadata.Repository
 		scrobbleService *scrobble.Service
+		jobService      *job.Service
 		jobs            map[string]context.CancelFunc
 		watcher         *fsnotify.Watcher
 	}
@@ -37,6 +37,7 @@ func New(
 	cfg *config.Config,
 	metadataRepo *metadata.Repository,
 	scrobbleService *scrobble.Service,
+	jobService *job.Service,
 	logger zerolog.Logger,
 ) (*Service, error) {
 	w, err := fsnotify.NewWatcher()
@@ -46,10 +47,10 @@ func New(
 
 	return &Service{
 		cfg:             cfg,
-		mu:              &sync.Mutex{},
 		logger:          logger,
 		metadata:        metadataRepo,
 		scrobbleService: scrobbleService,
+		jobService:      jobService,
 		jobs:            make(map[string]context.CancelFunc, 0),
 		watcher:         w,
 	}, nil
@@ -184,9 +185,6 @@ func (s *Service) lastLine() (string, error) {
 }
 
 func (s *Service) cancelJobs() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	for id, cancel := range s.jobs {
 		s.logger.
 			Debug().
@@ -213,9 +211,9 @@ func (s *Service) enqueueScrobble(ctx context.Context, md models.Track) error {
 		return nil
 	}
 
-	d := md.Duration / 2
-	if d >= time.Minute*4 {
-		d = time.Minute * 4
+	delay := md.Duration / 2
+	if delay >= time.Minute*4 {
+		delay = time.Minute * 4
 	}
 
 	jobID, err := helpers.RandomID()
@@ -224,45 +222,12 @@ func (s *Service) enqueueScrobble(ctx context.Context, md models.Track) error {
 		return err
 	}
 
-	s.mu.Lock()
 	s.jobs[jobID] = cancel
-	s.mu.Unlock()
-
-	go func(
-		ctx context.Context,
-		md models.Track,
-		jobID string,
-		offset time.Duration,
-	) {
-		ticker := time.NewTicker(offset)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				scrobbles, err := s.scrobbleService.Scrobble(ctx, md)
-				if err != nil {
-					// Well, we tried
-					s.logger.Error().Err(err).Msg("")
-				} else {
-					s.logger.
-						Info().
-						Str("artist", scrobbles.Scrobbles.Scrobble.Artist.Text).
-						Str("track", scrobbles.Scrobbles.Scrobble.Track.Text).
-						Int("accepted", scrobbles.Scrobbles.Attr.Accepted).
-						Int("ignored", scrobbles.Scrobbles.Attr.Ignored).
-						Msg("successful scrobble")
-				}
-
-				s.mu.Lock()
-				delete(s.jobs, jobID)
-				s.mu.Unlock()
-				return
-			case <-ctx.Done():
-				return
-			}
-		}
-	}(ctx, md, jobID, d)
+	s.jobService.Add(job.Job{
+		Ctx:   ctx,
+		Delay: delay,
+		Track: md,
+	})
 
 	return nil
 }

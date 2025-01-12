@@ -3,7 +3,6 @@ package job
 import (
 	"context"
 	"net/url"
-	"sync"
 	"syscall"
 	"time"
 
@@ -20,7 +19,6 @@ type (
 	}
 
 	Service struct {
-		mu              *sync.Mutex
 		jobChan         chan Job
 		scrobbleService *scrobble.Service
 		logger          zerolog.Logger
@@ -32,7 +30,6 @@ func New(
 	logger zerolog.Logger,
 ) *Service {
 	return &Service{
-		mu:              &sync.Mutex{},
 		scrobbleService: scrobbleService,
 		jobChan:         make(chan Job),
 		logger:          logger,

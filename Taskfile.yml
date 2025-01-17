@@ -19,12 +19,12 @@ tasks:
   release:
     vars:
       versions:
-        sh: git tag --list
+        sh: git tag --list | cut -c2-
       email: dusan@dusanmitrovic.rs
     cmds:
       - mkdir -p ./releases/
       - for: { var: versions, split: "\n" }
-        cmd: git archive -o ./releases/{{.ITEM}}.tar.gz {{.ITEM}} && gpg --default-key={{.email}} --detach-sign ./releases/{{.ITEM}}.tar.gz
+        cmd: git archive --format=tar.gz --prefix="{{.name}}-{{.ITEM}}/" -o ./releases/v{{.ITEM}}.tar.gz v{{.ITEM}} && gpg --yes --default-key={{.email}} --detach-sign ./releases/v{{.ITEM}}.tar.gz
   run:
     cmds:
       - go run ./main.go {{.CLI_ARGS}}

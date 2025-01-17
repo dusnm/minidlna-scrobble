@@ -71,7 +71,6 @@ func (s *Service) GetToken(ctx context.Context) (string, error) {
 		u.String(),
 		nil,
 	)
-
 	if err != nil {
 		return "", err
 	}
@@ -125,7 +124,6 @@ func (s *Service) GetSessionKey(ctx context.Context, token string) (SessionRespo
 		u.String(),
 		nil,
 	)
-
 	if err != nil {
 		return SessionResponse{}, err
 	}

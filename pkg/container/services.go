@@ -44,7 +44,6 @@ func (c *Container) GetWatcherService() *watcher.Service {
 				Str("service", "watcher").
 				Logger(),
 		)
-
 		if err != nil {
 			c.Logger.
 				Fatal().

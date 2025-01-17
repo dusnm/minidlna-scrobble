@@ -1,14 +1,30 @@
 version: "3"
+vars:
+  name: minidlna-scrobble
+  url: github.com/dusnm/{{.name}}
+  version:
+    sh: git tag --list | tail -n -1 | cut -c2-
 tasks:
   build:
-    vars:
-      version:
-        sh: git tag --list | tail -n -1 | cut -c2-
     cmds:
-      - mkdir -p ./bin
-      - go mod download
-      - go mod verify
-      - go build -ldflags='-X "github.com/dusnm/minidlna-scrobble/cmd.version={{.version}}"-s -w -extldflags "-static"' -o ./bin/minidlna-scrobble ./main.go
+        - mkdir -p ./bin
+        - go mod download
+        - go mod verify
+        - for: ['amd64', 'arm64']
+          cmd: CGO_ENABLED=0 GOARCH={{.ITEM}} go build -ldflags='-X "{{.url}}/cmd.version={{.version}}" -s -w -extldflags "-static"' -o ./bin/{{.name}}-{{.version}}-linux-{{.ITEM}} ./main.go
+  fmt:
+    cmds:
+      - gofumpt -l -w .
+      - gci write --skip-generated --skip-vendor -s standard -s default .
+  release:
+    vars:
+      versions:
+        sh: git tag --list
+      email: dusan@dusanmitrovic.rs
+    cmds:
+      - mkdir -p ./releases/
+      - for: { var: versions, split: "\n" }
+        cmd: git archive -o ./releases/{{.ITEM}}.tar.gz {{.ITEM}} && gpg --default-key={{.email}} --detach-sign ./releases/{{.ITEM}}.tar.gz
   run:
     cmds:
       - go run ./main.go {{.CLI_ARGS}}

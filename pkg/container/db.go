@@ -39,7 +39,6 @@ func (c *Container) GetMetadataRepository() *metadata.Repository {
 				Str("repository", "metadata").
 				Logger(),
 		)
-
 		if err != nil {
 			c.Logger.Fatal().Err(err).Msg("unable to create an instance of the metadata repo")
 		}

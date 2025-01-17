@@ -65,7 +65,6 @@ func (r *Repository) GetByID(ctx context.Context, ID int) (models.Track, error) 
 		&duration,
 		&track,
 	)
-
 	if err != nil {
 		return models.Track{}, err
 	}

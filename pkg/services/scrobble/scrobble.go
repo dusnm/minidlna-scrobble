@@ -115,7 +115,6 @@ func (s *Service) SendNowPlaying(
 		constants.APIBaseURL,
 		strings.NewReader(form.Encode()),
 	)
-
 	if err != nil {
 		return NowPlayingResponse{}, err
 	}
@@ -173,7 +172,6 @@ func (s *Service) Scrobble(ctx context.Context, data models.Track) (ScrobbleResp
 		constants.APIBaseURL,
 		strings.NewReader(form.Encode()),
 	)
-
 	if err != nil {
 		return ScrobbleResponse{}, err
 	}

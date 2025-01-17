@@ -17,7 +17,7 @@ const (
 )
 
 var (
-    // passed directly to the linker
+	// passed directly to the linker
 	version string
 
 	rootCmd = &cobra.Command{

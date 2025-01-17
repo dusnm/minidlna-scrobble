@@ -16,37 +16,43 @@ const (
 	flagLogLevelS = "l"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "minidlna-scrobble",
-	Short: "This program watches the minidlna log file for changes and scrobbles listens to last.fm",
-	Long: `Copyright (C) 2025 Dušan Mitrović <dusan@dusanmitrovic.rs>
+var (
+    // passed directly to the linker
+	version string
+
+	rootCmd = &cobra.Command{
+		Use:   "minidlna-scrobble",
+		Short: "This program watches the minidlna log file for changes and scrobbles listens to last.fm",
+		Long: `Copyright (C) 2025 Dušan Mitrović <dusan@dusanmitrovic.rs>
 Licensed under the terms of the GNU GPL v3 only`,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		log.Logger = log.Output(zerolog.ConsoleWriter{
-			Out:        os.Stderr,
-			NoColor:    true,
-			TimeFormat: "15:04",
-		})
+		Version: version,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			log.Logger = log.Output(zerolog.ConsoleWriter{
+				Out:        os.Stderr,
+				NoColor:    true,
+				TimeFormat: "15:04",
+			})
 
-		level, err := cmd.Flags().GetString(flagLogLevel)
-		if err != nil {
-			log.Fatal().Err(err).Msg("")
-		}
+			level, err := cmd.Flags().GetString(flagLogLevel)
+			if err != nil {
+				log.Fatal().Err(err).Msg("")
+			}
 
-		logLevel, err := zerolog.ParseLevel(level)
-		if err != nil {
-			log.Fatal().Err(err).Msg("invalid level")
-		}
+			logLevel, err := zerolog.ParseLevel(level)
+			if err != nil {
+				log.Fatal().Err(err).Msg("invalid level")
+			}
 
-		c, err := container.New(logLevel)
-		if err != nil {
-			log.Fatal().Err(err).Msg("")
-		}
+			c, err := container.New(logLevel)
+			if err != nil {
+				log.Fatal().Err(err).Msg("")
+			}
 
-		ctx := context.WithValue(context.Background(), constants.ContextKeyContainer, c)
-		cmd.SetContext(ctx)
-	},
-}
+			ctx := context.WithValue(context.Background(), constants.ContextKeyContainer, c)
+			cmd.SetContext(ctx)
+		},
+	}
+)
 
 func Execute() {
 	err := rootCmd.Execute()

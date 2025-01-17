@@ -1,11 +1,14 @@
 version: "3"
 tasks:
   build:
+    vars:
+      version:
+        sh: git tag --list | tail -n -1 | cut -c2-
     cmds:
       - mkdir -p ./bin
       - go mod download
       - go mod verify
-      - go build -ldflags='-s -w -extldflags "-static"' -o ./bin/minidlna-scrobble ./main.go
+      - go build -ldflags='-X "github.com/dusnm/minidlna-scrobble/cmd.version={{.version}}"-s -w -extldflags "-static"' -o ./bin/minidlna-scrobble ./main.go
   run:
     cmds:
       - go run ./main.go {{.CLI_ARGS}}
